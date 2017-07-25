@@ -83,9 +83,6 @@ public abstract class AbstractStreamResultSetMerger implements ResultSetMerger {
         if (BigDecimal.class == type) {
             return getCurrentResultSet().getBigDecimal(columnIndex);
         }
-        if (BigDecimal.class == type) {
-            return getCurrentResultSet().getBigDecimal(columnIndex);
-        }
         if (byte[].class == type) {
             return getCurrentResultSet().getBytes(columnIndex);
         }
@@ -148,9 +145,6 @@ public abstract class AbstractStreamResultSetMerger implements ResultSetMerger {
         if (BigDecimal.class == type) {
             return getCurrentResultSet().getBigDecimal(columnLabel);
         }
-        if (BigDecimal.class == type) {
-            return getCurrentResultSet().getBigDecimal(columnLabel);
-        }
         if (byte[].class == type) {
             return getCurrentResultSet().getBytes(columnLabel);
         }
@@ -209,6 +203,7 @@ public abstract class AbstractStreamResultSetMerger implements ResultSetMerger {
         throw new SQLException(String.format("Unsupported type: %s", type));
     }
     
+    @SuppressWarnings("deprecation")
     @Override
     public InputStream getInputStream(final int columnIndex, final String type) throws SQLException {
         if ("Ascii".equals(type)) {
@@ -220,12 +215,10 @@ public abstract class AbstractStreamResultSetMerger implements ResultSetMerger {
         if ("Binary".equals(type)) {
             return getCurrentResultSet().getBinaryStream(columnIndex);
         }
-        if ("Binary".equals(type)) {
-            return getCurrentResultSet().getBinaryStream(columnIndex);
-        }
         throw new SQLException(String.format("Unsupported type: %s", type));
     }
     
+    @SuppressWarnings("deprecation")
     @Override
     public InputStream getInputStream(final String columnLabel, final String type) throws SQLException {
         if ("Ascii".equals(type)) {
@@ -233,9 +226,6 @@ public abstract class AbstractStreamResultSetMerger implements ResultSetMerger {
         }
         if ("Unicode".equals(type)) {
             return getCurrentResultSet().getUnicodeStream(columnLabel);
-        }
-        if ("Binary".equals(type)) {
-            return getCurrentResultSet().getBinaryStream(columnLabel);
         }
         if ("Binary".equals(type)) {
             return getCurrentResultSet().getBinaryStream(columnLabel);

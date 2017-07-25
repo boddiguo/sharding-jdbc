@@ -17,20 +17,15 @@
 
 package com.dangdang.ddframe.rdb.sharding.util;
 
-import lombok.extern.slf4j.Slf4j;
+import org.junit.Test;
 
-@Slf4j(topic = "Sharding-JDBC-SQL")
-public class SQLPrinter {
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
+
+public final class EventBusInstanceTest {
     
-    private static boolean showSql;
-    
-    public static void init(final boolean showSql) {
-        SQLPrinter.showSql = showSql;
-    } 
-    
-    public static void print(final String format, final Object... arguments) {
-        if (showSql) {
-            log.info(format, arguments);
-        }
+    @Test
+    public void assertGetInstance() {
+        assertThat(EventBusInstance.getInstance(), is(EventBusInstance.getInstance()));
     }
 }

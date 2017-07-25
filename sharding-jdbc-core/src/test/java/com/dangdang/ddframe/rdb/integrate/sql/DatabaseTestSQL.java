@@ -31,6 +31,8 @@ public interface DatabaseTestSQL {
     
     String getSelectCountWithBindingTableSql();
     
+    String getSelectCountWithBindingTableAndWithoutJoinSql();
+    
     String getInsertWithAllPlaceholdersSql();
     
     String getInsertWithPartialPlaceholdersSql();
@@ -95,7 +97,11 @@ public interface DatabaseTestSQL {
     
     String getSelectWithBindingTableSql();
     
-    String getSelectWithParenthesesSql();
+    String getSelectIteratorSql();
+    
+    String getSelectSubquerySingleTableWithParenthesesSql();
+    
+    String getSelectSubqueryMultiTableWithParenthesesSql();
     
     String getSelectGroupByUserIdSql();
     

@@ -24,7 +24,6 @@ import lombok.Getter;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Collection;
 import java.util.List;
 import java.util.PriorityQueue;
 import java.util.Queue;
@@ -51,16 +50,14 @@ public class OrderByStreamResultSetMerger extends AbstractStreamResultSetMerger 
         isFirstNext = true;
     }
     
-    private void orderResultSetsToQueue(final Collection<ResultSet> resultSets) throws SQLException {
+    private void orderResultSetsToQueue(final List<ResultSet> resultSets) throws SQLException {
         for (ResultSet each : resultSets) {
             OrderByValue orderByValue = new OrderByValue(each, orderByItems);
             if (orderByValue.next()) {
                 orderByValuesQueue.offer(orderByValue);
             }
         }
-        if (!orderByValuesQueue.isEmpty()) {
-            setCurrentResultSet(orderByValuesQueue.peek().getResultSet());
-        }
+        setCurrentResultSet(orderByValuesQueue.isEmpty() ? resultSets.get(0) : orderByValuesQueue.peek().getResultSet());
     }
     
     @Override

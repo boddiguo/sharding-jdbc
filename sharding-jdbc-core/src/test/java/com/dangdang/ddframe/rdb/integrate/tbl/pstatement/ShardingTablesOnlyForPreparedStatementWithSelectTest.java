@@ -26,7 +26,9 @@ import org.junit.Test;
 import java.sql.SQLException;
 
 import static com.dangdang.ddframe.rdb.integrate.util.SqlPlaceholderUtil.replacePreparedStatement;
+import static com.dangdang.ddframe.rdb.sharding.constant.DatabaseType.H2;
 import static com.dangdang.ddframe.rdb.sharding.constant.DatabaseType.MySQL;
+import static com.dangdang.ddframe.rdb.sharding.constant.DatabaseType.Oracle;
 import static com.dangdang.ddframe.rdb.sharding.constant.DatabaseType.PostgreSQL;
 import static com.dangdang.ddframe.rdb.sharding.constant.DatabaseType.SQLServer;
 
@@ -71,11 +73,41 @@ public final class ShardingTablesOnlyForPreparedStatementWithSelectTest extends 
     }
     
     @Test
+    public void assertSelectSubquerySingleTableWithParenthesesSql() throws SQLException, DatabaseUnitException {
+        if (CURRENT_DB_TYPE != H2) {
+            String sql = getDatabaseTestSQL().getSelectSubquerySingleTableWithParenthesesSql();
+            assertDataSet(TABLE_ONLY_PREFIX + "/expect/select/SelectSubquerySingleTableWithParentheses.xml", shardingDataSource.getConnection(),
+                    "t_order", replacePreparedStatement(sql), 1000, 1001);
+        }
+    }
+    
+    @Test
+    public void assertSelectSubqueryMultiTableWithParenthesesSql() throws SQLException, DatabaseUnitException {
+        if (CURRENT_DB_TYPE != H2) {
+            String sql = getDatabaseTestSQL().getSelectSubqueryMultiTableWithParenthesesSql();
+            assertDataSet(TABLE_ONLY_PREFIX + "/expect/select/SelectSubqueryMultiTableWithParentheses.xml", shardingDataSource.getConnection(),
+                    "t_order", replacePreparedStatement(sql), 1000, 1001);
+        }
+    }
+    
+    @Test
+    public void assertSelectIteratorSql() throws SQLException, DatabaseUnitException {
+        String sql = getDatabaseTestSQL().getSelectIteratorSql();
+        assertDataSet(TABLE_ONLY_PREFIX + "/expect/select/SelectIteratorSql_0.xml", shardingDataSource.getConnection(), "t_order_item", replacePreparedStatement(sql), 100000, 100001);
+        assertDataSet(TABLE_ONLY_PREFIX + "/expect/select/SelectIteratorSql_1.xml", shardingDataSource.getConnection(), "t_order_item", replacePreparedStatement(sql), 100900, 100901);
+        assertDataSet(TABLE_ONLY_PREFIX + "/expect/select/SelectIteratorSql_2.xml", shardingDataSource.getConnection(), "t_order_item", replacePreparedStatement(sql), 100000, 100900);
+        assertDataSet(TABLE_ONLY_PREFIX + "/expect/select/SelectIteratorSql_3.xml", shardingDataSource.getConnection(), "t_order_item", replacePreparedStatement(sql), 100000, 100200);
+        assertDataSet("integrate/dataset/Empty.xml", getShardingDataSource().getConnection(), "t_order_item", replacePreparedStatement(sql), 10, 11);
+    }
+    
+    @Test
     public void assertSelectPagingWithOffsetAndRowCountSql() throws SQLException, DatabaseUnitException {
         if (currentDbType() == SQLServer) {
-            assertSelectPaging("SelectPagingWithOffsetAndRowCountSql.xml", getDatabaseTestSQL().getSelectPagingWithOffsetAndRowCountSql(), 2, 10, 19, 1000, 1909, 1);
+            assertSelectPaging("SelectPagingWithOffsetAndRowCountSql.xml", replacePreparedStatement(getDatabaseTestSQL().getSelectPagingWithOffsetAndRowCountSql()), 4, 10, 19, 1000, 1909, 2);
+        } else if (currentDbType() == Oracle) {
+            assertSelectPaging("SelectPagingWithOffsetAndRowCountSql.xml", replacePreparedStatement(getDatabaseTestSQL().getSelectPagingWithOffsetAndRowCountSql()), 10, 19, 1000, 1909, 4, 2);
         } else {
-            assertSelectPaging("SelectPagingWithOffsetAndRowCountSql.xml", getDatabaseTestSQL().getSelectPagingWithOffsetAndRowCountSql(), 10, 19, 1000, 1909, 2, 2);
+            assertSelectPaging("SelectPagingWithOffsetAndRowCountSql.xml", replacePreparedStatement(getDatabaseTestSQL().getSelectPagingWithOffsetAndRowCountSql()), 10, 19, 1000, 1909, 2, 2);
         }
     }
     
@@ -106,30 +138,6 @@ public final class ShardingTablesOnlyForPreparedStatementWithSelectTest extends 
             assertDataSet(TABLE_ONLY_PREFIX + "/expect/select/SelectLikeWithCount.xml", getShardingDataSource().getConnection(),
                     "t_order_item", replacePreparedStatement(getDatabaseTestSQL().getSelectLikeWithCountSql()), "init", 10, 11, 1000, 1909);
         }
-    }
-    
-    @Test
-    public void assertSelectGroupByWithBindingTable() throws SQLException, DatabaseUnitException {
-        assertDataSet(TABLE_ONLY_PREFIX + "/expect/select/SelectGroupByWithBindingTable.xml", getShardingDataSource().getConnection(),
-                "t_order_item", replacePreparedStatement(getDatabaseTestSQL().getSelectGroupWithBindingTableSql()), 10, 11, 1000, 1109);
-        assertDataSet("integrate/dataset/Empty.xml", getShardingDataSource().getConnection(), 
-                "t_order_item", replacePreparedStatement(getDatabaseTestSQL().getSelectGroupWithBindingTableSql()), 1, 9, 1000, 1909);
-    }
-    
-    @Test
-    public void assertSelectWithParenthesesSql() throws SQLException, DatabaseUnitException {
-        String expectedDataSetFile = TABLE_ONLY_PREFIX + "/expect/select/SelectParentheses.xml";
-        assertDataSet(expectedDataSetFile, getShardingDataSource().getConnection(),
-                "t_order", getDatabaseTestSQL().getSelectWithParenthesesSql(), 1000, 1001);
-    }
-    
-    @Test
-    public void assertSelectGroupByWithoutGroupedColumn() throws SQLException, DatabaseUnitException {
-        String expectedDataSetFile = TABLE_ONLY_PREFIX + "/expect/select/SelectGroupByWithoutGroupedColumn.xml";
-        assertDataSet(expectedDataSetFile, getShardingDataSource().getConnection(),
-                "t_order_item", replacePreparedStatement(getDatabaseTestSQL().getSelectGroupWithoutGroupedColumnSql()), 10, 11, 1000, 1109);
-        assertDataSet("integrate/dataset/Empty.xml", getShardingDataSource().getConnection(), 
-                "t_order_item", replacePreparedStatement(getDatabaseTestSQL().getSelectGroupWithoutGroupedColumnSql()), 1, 9, 1000, 1909);
     }
     
     @Test
