@@ -61,7 +61,8 @@
         <jdepend-maven-plugin.version>2.0</jdepend-maven-plugin.version>
         <taglist-maven-plugin.version>2.4</taglist-maven-plugin.version>
         <maven-gpg-plugin.version>1.6</maven-gpg-plugin.version>
-        
+        <hystrix.version>1.5.11</hystrix.version>
+
         <javadocExecutable>${java.home}/../bin/javadoc</javadocExecutable>
     </properties>
     
@@ -215,6 +216,17 @@
                 <groupId>com.dangdang</groupId>
                 <artifactId>elastic-job-core</artifactId>
                 <version>${elastic-job.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.netflix.hystrix</groupId>
+                <artifactId>hystrix-core</artifactId>
+                <version>${hystrix.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.slf4j</groupId>
+                        <artifactId>slf4j-api</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
         </dependencies>
     </dependencyManagement>

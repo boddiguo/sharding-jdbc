@@ -36,6 +36,11 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.netflix.hystrix.HystrixCommand;
+import com.netflix.hystrix.HystrixCommandGroupKey;
+import com.netflix.hystrix.HystrixCommandProperties;
+import com.netflix.hystrix.HystrixThreadPoolProperties;
+
 import lombok.extern.slf4j.Slf4j;
 
 import java.sql.SQLException;
@@ -158,7 +163,6 @@ public final class ExecutorEngine implements AutoCloseable {
     private <T> T executeInternal(final SQLType sqlType, final BaseStatementUnit baseStatementUnit, final List<List<Object>> parameterSets, final ExecuteCallback<T> executeCallback, 
                           final boolean isExceptionThrown, final Map<String, Object> dataMap) throws Exception {
         synchronized (baseStatementUnit.getStatement().getConnection()) {
-            T result;
             ExecutorExceptionHandler.setExceptionThrown(isExceptionThrown);
             ExecutorDataMap.setDataMap(dataMap);
             List<AbstractExecutionEvent> events = new LinkedList<>();
@@ -171,8 +175,45 @@ public final class ExecutorEngine implements AutoCloseable {
             for (AbstractExecutionEvent event : events) {
                 EventBusInstance.getInstance().post(event);
             }
+
+            T result = (T) new ExecutorCommand(baseStatementUnit, executeCallback, events).execute();
+            if (result != null) {
+                for (AbstractExecutionEvent each : events) {
+                    each.setEventExecutionType(EventExecutionType.EXECUTE_SUCCESS);
+                    EventBusInstance.getInstance().post(each);
+                }
+            }
+            return result;
+        }
+    }
+
+    private class ExecutorCommand<T> extends HystrixCommand {
+
+        private ExecuteCallback<T> executeCallback;
+        private BaseStatementUnit baseStatementUnit;
+        private List<AbstractExecutionEvent> events;
+
+        protected ExecutorCommand(BaseStatementUnit baseStatementUnit, ExecuteCallback<T> executeCallback,
+            final List<AbstractExecutionEvent> events) {
+            super(Setter.withGroupKey(
+                HystrixCommandGroupKey.Factory.asKey(baseStatementUnit.getSqlExecutionUnit().getDataSource()))//
+                        .andCommandPropertiesDefaults(
+                            HystrixCommandProperties.Setter().withCircuitBreakerRequestVolumeThreshold(20)// 10秒钟内至少19此请求失败，熔断器才发挥起作用
+                                                    .withCircuitBreakerSleepWindowInMilliseconds(30000)// 熔断器中断请求30秒后会进入半打开状态,放部分流量过去重试
+                                                    .withCircuitBreakerErrorThresholdPercentage(50)// 错误率达到50开启熔断保护
+                                                    .withExecutionTimeoutEnabled(false)// 禁用这里的超时
+                                                    .withFallbackEnabled(true))//
+                                                    .andThreadPoolPropertiesDefaults(HystrixThreadPoolProperties.Setter().withCoreSize(5))// 线程池为5
+            );
+            this.executeCallback = executeCallback;
+            this.baseStatementUnit = baseStatementUnit;
+            this.events = events;
+        }
+
+        @Override
+        protected T run() throws Exception {
             try {
-                result = executeCallback.execute(baseStatementUnit);
+                return executeCallback.execute(baseStatementUnit);
             } catch (final SQLException ex) {
                 for (AbstractExecutionEvent each : events) {
                     each.setEventExecutionType(EventExecutionType.EXECUTE_FAILURE);
@@ -182,11 +223,11 @@ public final class ExecutorEngine implements AutoCloseable {
                 }
                 return null;
             }
-            for (AbstractExecutionEvent each : events) {
-                each.setEventExecutionType(EventExecutionType.EXECUTE_SUCCESS);
-                EventBusInstance.getInstance().post(each);
-            }
-            return result;
+        }
+
+        @Override
+        protected Object getFallback() {
+            return null;
         }
     }
     

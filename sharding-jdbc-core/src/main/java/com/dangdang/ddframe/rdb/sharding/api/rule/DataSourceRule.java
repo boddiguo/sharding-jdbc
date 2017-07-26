@@ -17,6 +17,8 @@
 
 package com.dangdang.ddframe.rdb.sharding.api.rule;
 
+import com.dangdang.ddframe.rdb.sharding.jdbc.core.datasource.MasterSlaveDataSource;
+import com.dangdang.ddframe.rdb.sharding.util.EventBusInstance;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
@@ -24,6 +26,7 @@ import lombok.Getter;
 
 import javax.sql.DataSource;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -44,7 +47,13 @@ public final class DataSourceRule {
     
     public DataSourceRule(final Map<String, DataSource> dataSourceMap, final String defaultDataSourceName) {
         Preconditions.checkState(!dataSourceMap.isEmpty(), "Must have one data source at least.");
-        this.dataSourceMap = dataSourceMap;
+        this.dataSourceMap = new HashMap<>(dataSourceMap);
+
+        // get the first datascouce class to check the data source is master slave or not
+        if (dataSourceMap.entrySet().iterator().next().getClass().isInstance(MasterSlaveDataSource.class)) {
+            EventBusInstance.getInstance().register(new SlaveFallbackListener(this));
+        }
+
         if (1 == dataSourceMap.size()) {
             this.defaultDataSourceName = dataSourceMap.entrySet().iterator().next().getKey();
             return;
@@ -56,7 +65,7 @@ public final class DataSourceRule {
         Preconditions.checkState(dataSourceMap.containsKey(defaultDataSourceName), "Data source rule must include default data source.");
         this.defaultDataSourceName = defaultDataSourceName;
     }
-    
+
     /**
      * 获取数据源实例.
      * 
@@ -93,5 +102,13 @@ public final class DataSourceRule {
      */
     public Collection<DataSource> getDataSources() {
         return dataSourceMap.values();
+    }
+
+    /**
+     * 移除某个数据源
+     * dangerous
+     */
+    public void removeDataSource(String dataSourceName) {
+        dataSourceMap.remove(dataSourceName);
     }
 }
